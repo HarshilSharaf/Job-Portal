@@ -3,8 +3,22 @@ const Op = Sequelize.Op
 const express = require("express");
 const router = express.Router();
 const uuid = require('uuid');
+const bcrypt = require("bcrypt");
 const jwtAuth = require("../lib/jwtAuth");
-const { User, JOB, JobApplicant, Recruiter, Applications, Rating } = require('../db/models')
+const addZoomToken = require('../lib/zoomAuth')
+const { User, JOB, JobApplicant, Recruiter, Applications, Rating, Meetings } = require('../db/models')
+const nodemailer = require('nodemailer')
+const zoomMeetingController = require('../lib/zoomMeetingController');
+const jwt = require('jsonwebtoken');
+const { renderResetPwdHtml } = require("../lib/emailHtmlTemplates")
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'your email',
+    pass: 'your password'
+  }
+});
+
 
 
 router.post("/jobs", jwtAuth, (req, res) => {
@@ -142,11 +156,14 @@ router.get("/jobs", jwtAuth, async (req, res) => {
 
 
   let queryParams = {
-    where: findParams,
+    where: {
+      ...findParams, status: {
+        [Op.notIn]: ["Deleted"]
+      }
+    },
     order: sortParams,
     include: [{ model: Recruiter, attributes: ['name'], required: true }]
   }
-
 
 
   await JOB.findAll(queryParams)
@@ -160,6 +177,7 @@ router.get("/jobs", jwtAuth, async (req, res) => {
       res.json(posts);
     })
     .catch((err) => {
+      console.log(err)
       res.status(400).json(err);
     });
 });
@@ -191,6 +209,7 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
     });
     return;
   }
+  console.log(req.params)
   JOB.findOne({
     where: {
       jid: req.params.id,
@@ -227,6 +246,7 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
         });
     })
     .catch((err) => {
+      console.log(err)
       res.status(400).json(err);
     });
 });
@@ -240,10 +260,14 @@ router.delete("/jobs/:id", jwtAuth, (req, res) => {
     });
     return;
   }
-  JOB.Destroy({
-    jid: req.params.id,
-    rid: user.uid,
-  })
+  JOB.update(
+    { status: "Deleted" },
+    {
+      where: {
+        jid: req.params.id,
+        rid: user.uid,
+      }
+    })
     .then((job) => {
       if (job === null) {
         res.status(401).json({
@@ -256,6 +280,7 @@ router.delete("/jobs/:id", jwtAuth, (req, res) => {
       });
     })
     .catch((err) => {
+      console.log(err)
       res.status(400).json(err);
     });
 });
@@ -377,6 +402,12 @@ router.put("/user", jwtAuth, (req, res) => {
           });
           return;
         }
+        data.education.forEach((detail) => {
+          detail['startYear'] = parseInt(detail.startYear)
+          detail['endYear'] = parseInt(detail.endYear)
+        })
+        console.log(data.education)
+
         const updatingData = { name: data.name, education: data.education, skills: data.skills, resume: data.resume, profile: data.profile }
         jobApplicant
           .update(updatingData)
@@ -562,7 +593,7 @@ router.get("/applications", jwtAuth, (req, res) => {
   // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
   // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
   if (user.type == "recruiter") {
-    Applications.findAll({ where: { rid: user.uid }, include: [{ model: JOB, order: ['dateOfPosting', 'ASC'] }, { model: Recruiter }] })
+    Applications.findAll({ where: { rid: user.uid }, include: [{ model: JOB, order: ['dateOfPosting', 'ASC'] }, { model: Meetings }, { model: Recruiter }] })
       .then((applications) => {
         res.json(applications);
       })
@@ -571,7 +602,7 @@ router.get("/applications", jwtAuth, (req, res) => {
       });
   }
   else {
-    Applications.findAll({ where: { aid: user.uid }, include: [{ model: JOB, order: ['dateOfPosting', 'ASC'] }, { model: Recruiter }] })
+    Applications.findAll({ where: { aid: user.uid }, include: [{ model: JOB, order: ['dateOfPosting', 'ASC'] }, { model: Meetings }, { model: Recruiter }] })
       .then((applications) => {
         res.json(applications);
       })
@@ -602,7 +633,6 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
       // get job info for maxPositions count
       // count applications that are already accepted
       // compare and if condition is satisfied, then save
-
       Applications.findOne({
         where: {
           applicationId: applicationId,
@@ -616,13 +646,14 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
             });
             return;
           }
-
+          // console.log(application)
           JOB.findOne({
             where: {
               jid: application.jid,
               rid: user.uid,
             }
           }).then((job) => {
+            // console.log(job)
             if (job === null) {
               res.status(404).json({
                 message: "Job does not exist",
@@ -639,9 +670,11 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
             }).then((activeApplicationCount) => {
               if (activeApplicationCount < job.maxPositions) {
                 // accepted
+                // console.log(activeApplicationCount)
                 application
                   .update({ status: status, dateOfJoining: req.body.dateOfJoining })
-                  .then(() => {
+                  .then((result) => {
+                    // console.log(result)
                     Applications.update({
                       status: "cancelled",
                     }, {
@@ -661,10 +694,9 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
                         },
                       }
                     }
-
-
                     )
-                      .then(() => {
+                      .then((result) => {
+                        console.log(result)
                         if (status === "accepted") {
                           JOB.update({
                             acceptedCandidates: activeApplicationCount + 1,
@@ -677,7 +709,24 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
                             },
 
                           )
-                            .then(() => {
+                            .then((jobs) => {
+                              // console.log("JOB DETAILS:",job)
+                              User.findByPk(application.aid).then((result) => {
+
+                                var mailOptions = {
+                                  from: 'Job Portal <harshilsharaf@gmail.com>',
+                                  to: result.email,
+                                  subject: 'Your Job Application Has Been Accepted',
+                                  html: `<h1>Congratulations!</h1> <p>You've Been Accepted for the permanent role of ${job.title}</p>`
+                                };
+                                transporter.sendMail(mailOptions, function (error, info) {
+                                  if (error) {
+                                    console.log(error)
+                                  } else {
+                                    console.log('Email sent: ' + info.response);
+                                  }
+                                });
+                              }).catch((err) => { console.log(err) })
                               res.json({
                                 message: `Application ${status} successfully`,
                               });
@@ -692,10 +741,12 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
                         }
                       })
                       .catch((err) => {
+                        console.log(err)
                         res.status(400).json(err);
                       });
                   })
                   .catch((err) => {
+                    console.log(err)
                     res.status(400).json(err);
                   });
               } else {
@@ -707,6 +758,7 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
           });
         })
         .catch((err) => {
+          console.log(err)
           res.status(400).json(err);
         });
     } else {
@@ -739,6 +791,7 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
           }
         })
         .catch((err) => {
+          console.log(err)
           res.status(400).json(err);
         });
     }
@@ -823,8 +876,7 @@ router.get("/applicants", jwtAuth, (req, res) => {
         sortParams.push([req.query.desc, 'DESC'])
       }
     }
-
-    Applications.findAll({ where: { rid: user.uid }, order: sortParams, include: [{ model: JOB }, { model: JobApplicant }] })
+    Applications.findAll({ where: findParams, order: sortParams, include: [{ model: JOB }, { model: JobApplicant }] })
       .then((applications) => {
         if (applications.length === 0) {
           res.status(404).json({
@@ -835,6 +887,7 @@ router.get("/applicants", jwtAuth, (req, res) => {
         res.json(applications);
       })
       .catch((err) => {
+        console.log(err)
         res.status(400).json(err);
       });
   } else {
@@ -948,10 +1001,10 @@ router.put("/rating", jwtAuth, (req, res) => {
         } else {
           // rating.dataValues.rating = data.rating;
           Rating
-            .update({rating:data.rating},{
-              where:{
+            .update({ rating: data.rating }, {
+              where: {
                 receiverId: data.applicantId,
-                  category: "applicant"
+                category: "applicant"
               }
             })
             .then(() => {
@@ -1019,7 +1072,7 @@ router.put("/rating", jwtAuth, (req, res) => {
       }
     })
       .then((rating) => {
-    
+
         if (rating === null) {
           Applications.count({
             where: {
@@ -1061,17 +1114,17 @@ router.put("/rating", jwtAuth, (req, res) => {
                           rating: avg,
                         }, { where: { jid: data.jobId } }
                         ).then((foundJob) => {
-                            if (foundJob === null) {
-                              res.status(400).json({
-                                message:
-                                  "Error while updating job's average rating",
-                              });
-                              return;
-                            }
-                            res.json({
-                              message: "Rating added successfully",
+                          if (foundJob === null) {
+                            res.status(400).json({
+                              message:
+                                "Error while updating job's average rating",
                             });
-                          })
+                            return;
+                          }
+                          res.json({
+                            message: "Rating added successfully",
+                          });
+                        })
                           .catch((err) => {
                             res.status(400).json(err);
                           });
@@ -1099,48 +1152,49 @@ router.put("/rating", jwtAuth, (req, res) => {
           // rating.rating = data.rating;
           Rating
             .update({
-              rating:data.rating
-            },{
-              where:{receiverId:data.jobId,category:"job"}
+              rating: data.rating
+            }, {
+              where: { receiverId: data.jobId, category: "job" }
             }
             )
             .then(() => {
               // get the average of ratings
               Rating.findAll({
-                where:{receiverId:data.jobId,category:"job"},
+                where: { receiverId: data.jobId, category: "job" },
                 attributes: [[Sequelize.fn('avg', Sequelize.col('rating')), 'average']]
-              
-              }).then((result) => {
-                  if (result === null) {
-                    res.status(400).json({
-                      message: "Error while calculating rating",
-                    });
-                    return;
-                  }
-                  const avg = result[0].dataValues.average;
 
-                  JOB.update({
-                    rating: avg,
-                  },
-                    {where:{jid: data.jobId,}
-                      
-                    }
-                  )
-                    .then((foundJob) => {
-                      if (foundJob === null) {
-                        res.status(400).json({
-                          message: "Error while updating job's average rating",
-                        });
-                        return;
-                      }
-                      res.json({
-                        message: "Rating added successfully",
+              }).then((result) => {
+                if (result === null) {
+                  res.status(400).json({
+                    message: "Error while calculating rating",
+                  });
+                  return;
+                }
+                const avg = result[0].dataValues.average;
+
+                JOB.update({
+                  rating: avg,
+                },
+                  {
+                    where: { jid: data.jobId, }
+
+                  }
+                )
+                  .then((foundJob) => {
+                    if (foundJob === null) {
+                      res.status(400).json({
+                        message: "Error while updating job's average rating",
                       });
-                    })
-                    .catch((err) => {
-                      res.status(400).json(err);
+                      return;
+                    }
+                    res.json({
+                      message: "Rating added successfully",
                     });
-                })
+                  })
+                  .catch((err) => {
+                    res.status(400).json(err);
+                  });
+              })
                 .catch((err) => {
                   res.status(400).json(err);
                 });
@@ -1159,11 +1213,13 @@ router.put("/rating", jwtAuth, (req, res) => {
 // get personal rating
 router.get("/rating", jwtAuth, (req, res) => {
   const user = req.user;
-  Rating.findOne({where:{
-    senderId: user.uid,
-    receiverId: req.query.id,
-    category: user.type === "recruiter" ? "applicant" : "job",
-  }}).then((rating) => {
+  Rating.findOne({
+    where: {
+      senderId: user.uid,
+      receiverId: req.query.id,
+      category: user.type === "recruiter" ? "applicant" : "job",
+    }
+  }).then((rating) => {
     if (rating === null) {
       res.json({
         rating: -1,
@@ -1175,5 +1231,157 @@ router.get("/rating", jwtAuth, (req, res) => {
     });
   });
 });
+
+
+//forgot password route
+
+router.post("/forgotPassword", (req, res) => {
+  const emailId = req.body.email
+
+  // mg.messages().send(data, function (error, body) {
+  // 	console.log(body);
+  // });
+  User.findOne({
+    where: {
+      email: emailId
+    },
+    attributes: ['uid', 'password']
+  },
+  ).then((user) => {
+    if (user != null) {
+      const secret = "some Super secret..." + user.password
+      const payload = {
+        email: emailId,
+        id: user.uid
+      }
+
+      const token = jwt.sign(payload, secret, { expiresIn: "15m" })
+      const link = `http://localhost:3000/reset-password/${user.uid}/${token}`
+      var mailOptions = {
+        from: 'Job Portal <harshilsharaf@gmail.com>',
+        to: "gebehir156@wowcg.com",
+        subject: 'Reset Your Password',
+        html: renderResetPwdHtml(link)
+      };
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          console.log(error)
+          res.status(400).json({ message: "Some Error Occured" });
+        } else {
+          res.status(200).json({ status: 200, message: "Password Reset Link Has Been successfully sent to your email." })
+          console.log('Email sent: ' + info.response);
+        }
+      });
+
+    }
+    else {
+      res.status(200).json({ status: 400, message: "User does not exist.Please verify your Email." })
+    }
+  }).catch((error) => {
+    res.status(400).json(error)
+    console.log(error)
+  })
+
+})
+
+router.post('/reset-password', (req, res, next) => {
+  const { id, token } = req.body;
+  User.findByPk(id).then((user) => {
+    if (user === null) {
+      res.send(400).json({ message: "User Invalid." })
+    }
+    else {
+      const secret = "some Super secret..." + user.password
+      try {
+        // console.log("Password:",req.body.password)
+        const payload = jwt.verify(token, secret)
+        const salt = bcrypt.genSaltSync(10, "a");
+        req.body.password = bcrypt.hashSync(req.body.password, salt);
+        User.update({
+          password: req.body.password
+        }, {
+          where: { uid: id }
+        }).then((result) => {
+          if (result !== null) {
+            res.status(200).json({ message: "Your Password has been reset." })
+          }
+          else {
+            res.status(400).json({ message: "Invalid User." })
+          }
+        }).catch((err) => { res.status(400).json({ message: "Failed to Reset Password." }) })
+      }
+      catch (err) {
+        console.log(err)
+        if (err.name = "TokenExpiredError") { res.status(400).json({ message: "Link Has Been Expired.Please Try Again." }) }
+        else {
+          res.status(400).json({ message: "Some Error Occured." })
+        }
+      }
+    }
+  })
+});
+//check for meeting
+router.post("/checkMeetings", jwtAuth, addZoomToken, (req, res) => {
+  const user = req.user
+  if (user.type === 'recruiter') {
+
+    Meetings.findOne({
+      where: {
+        rid: user.uid,
+        aid: req.body.aid,
+        applicationId: req.body.applicationId,
+        jid: req.body.jid
+      }
+    }).then((result) => {
+      if (result !== null) {
+        req.body = { ...req.body, result }
+        req.body.meetingId = result.zoomMeetingId
+        zoomMeetingController.getMeeting(req, res)
+      }
+      else {
+        res.status(200).json({ message: "Meeting Not Found" })
+      }
+    }).catch(err => { console.log(err) })
+  }
+})
+
+
+//creating a zoom meeting
+
+router.post('/createZoomMeeting', addZoomToken, zoomMeetingController.createZoomMeeting);
+
+// update zoom meeting
+
+router.post('/updateMeeting', jwtAuth, addZoomToken, (req, res) => {
+  const user = req.user
+  if (user.type === 'recruiter') {
+    Meetings.findOne({
+      where: {
+        rid: user.uid,
+        aid: req.body.aid,
+        applicationId: req.body.applicationId,
+        jid: req.body.jid
+      }
+    }).then((result) => {
+      if (result !== null) {
+        req.body = { ...req.body, result }
+        req.body.meetingId = result.zoomMeetingId
+        zoomMeetingController.updateMeeting(req, res).then((result) => {
+          res.status(200).json({ message: "Meeting Details Updated Successfully" })
+        }).catch((err) => {
+          console.log(err)
+          res.status(400).json({ message: "Failed to Update Meeting Details" })
+        })
+      }
+      else {
+        res.status(200).json({ message: "Meeting Not Found" })
+      }
+    }).catch(err => { console.log(err) })
+  }
+
+})
+
+//delete zoom meeting
+router.post('/deleteMeeting',jwtAuth,addZoomToken,zoomMeetingController.deleteMeeting)
 
 module.exports = router;

@@ -6,7 +6,8 @@ const { promisify } = require("util");
 const path = require("path");
 const { Readable } = require('stream');
 const pipeline = promisify(require("stream").pipeline);
-
+const {JobApplicant} = require('../db/models');
+const jwtAuth = require("../lib/jwtAuth");
 const router = express.Router();
 
 const upload = multer();
@@ -21,7 +22,7 @@ function bufferToStream(binary) {
 
   return readableInstanceStream;
 }
-router.post("/resume", upload.single("file"), (req, res) => {
+router.post("/resume", jwtAuth,upload.single("file"), (req, res) => {
   const { file } = req;
   console.log("FILENAME:",file)
 

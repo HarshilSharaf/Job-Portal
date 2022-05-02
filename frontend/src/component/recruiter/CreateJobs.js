@@ -10,6 +10,9 @@ import {
   MenuItem,
 } from "@material-ui/core";
 import axios from "axios";
+import Container from 'react-bootstrap/Container'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
 import ChipInput from "material-ui-chip-input";
 
 import { SetPopupContext } from "../../App";
@@ -27,6 +30,24 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
     // padding: "30px",
   },
+  ScreenSize: {
+    flexDirection: 'column',
+    [theme.breakpoints.only('xs')]: {
+      flexDirection: 'row'
+    },
+    [theme.breakpoints.only('sm')]: {
+      flexDirection: 'column'
+    },
+    [theme.breakpoints.only('md')]: {
+      flexDirection: 'column'
+    }
+  },
+  headerSize :{
+    fontSize:'34pt',
+    [theme.breakpoints.down('sm')]:{
+    fontSize:'24pt'
+    }
+  }
 }));
 
 const CreateJobs = (props) => {
@@ -91,17 +112,13 @@ const CreateJobs = (props) => {
 
   return (
     <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh", width: "" }}
+      <Container
+        style={{ padding: "30px", minHeight: "93vh"}}
       >
-        <Grid item>
-          <Typography variant="h2">Add Job</Typography>
-        </Grid>
-        <Grid item container xs direction="column" justify="center">
+        <Row className="text-center">
+          <Typography variant="h2" style={{color:"white"}}>Add Job</Typography>
+        </Row>
+        <Row >
           <Grid item>
             <Paper
               style={{
@@ -119,7 +136,7 @@ const CreateJobs = (props) => {
                 alignItems="stretch"
                 spacing={3}
               >
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     label="Title"
                     value={jobDetails.title}
@@ -130,13 +147,14 @@ const CreateJobs = (props) => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item>
+                <Grid item  xs={12}>
                   <ChipInput
                     className={classes.inputBox}
                     label="Skills"
                     variant="outlined"
                     helperText="Press enter to add skills"
                     value={jobDetails.skillsets}
+                    style={{marginBottom:"10px"}}
                     onAdd={(chip) =>
                       setJobDetails({
                         ...jobDetails,
@@ -154,7 +172,7 @@ const CreateJobs = (props) => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     select
                     label="Job Type"
@@ -170,7 +188,7 @@ const CreateJobs = (props) => {
                     <MenuItem value="Work From Home">Work From Home</MenuItem>
                   </TextField>
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     select
                     label="Duration"
@@ -190,7 +208,7 @@ const CreateJobs = (props) => {
                     <MenuItem value={6}>6 Months</MenuItem>
                   </TextField>
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     label="Salary"
                     type="number"
@@ -203,7 +221,7 @@ const CreateJobs = (props) => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     label="Application Deadline"
                     type="datetime-local"
@@ -218,7 +236,7 @@ const CreateJobs = (props) => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     label="Maximum Number Of Applicants"
                     type="number"
@@ -231,7 +249,7 @@ const CreateJobs = (props) => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item>
+                <Grid item xs={12}>
                   <TextField
                     label="Positions Available"
                     type="number"
@@ -255,8 +273,8 @@ const CreateJobs = (props) => {
               </Button>
             </Paper>
           </Grid>
-        </Grid>
-      </Grid>
+        </Row>
+      </Container>
     </>
   );
 };

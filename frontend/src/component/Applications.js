@@ -15,9 +15,12 @@ import {
   FormGroup,
   MenuItem,
   Checkbox,
+  Link,
 } from "@material-ui/core";
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
+import LinkIcon from '@material-ui/icons/Link';
+
 
 import { SetPopupContext } from "../App";
 
@@ -47,6 +50,18 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  ScreenSize:{
+    flexDirection: 'row',
+  [theme.breakpoints.only('xs')]:{
+    flexDirection : 'column'
+  },
+  [theme.breakpoints.only('sm')]:{
+    flexDirection : 'row'
+  },
+  [theme.breakpoints.only('md')]:{
+    flexDirection : 'row'
+  }
+  },
 }));
 
 const ApplicationTile = (props) => {
@@ -70,7 +85,7 @@ const ApplicationTile = (props) => {
         setRating(response.data.rating);
 
         console.log(response.data);
-        
+
       })
       .catch((err) => {
         // console.log(err.response);
@@ -133,16 +148,16 @@ const ApplicationTile = (props) => {
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
-      <Grid container>
+      <Grid container className={classes.ScreenSize}>
         <Grid container item xs={9} spacing={1} direction="column">
           <Grid item>
             <Typography variant="h5">{application.job.title}</Typography>
           </Grid>
-          <Grid item>Posted By: {application.recruiter.name}</Grid>
-          <Grid item>Role : {application.job.jobType}</Grid>
-          <Grid item>Salary : &#8377; {application.job.salary} per month</Grid>
+          <Grid item><b>Posted By:</b> {application.recruiter.name}</Grid>
+          <Grid item><b>Role :</b> {application.job.jobType}</Grid>
+          <Grid item><b>Salary :</b> &#8377; {application.job.salary} per month</Grid>
           <Grid item>
-            Duration :{" "}
+           <b> Duration :</b>{" "}
             {application.job.duration !== 0
               ? `${application.job.duration} month`
               : `Flexible`}
@@ -152,13 +167,19 @@ const ApplicationTile = (props) => {
               <Chip label={skill} style={{ marginRight: "2px" }} />
             ))}
           </Grid>
-          <Grid item>Applied On: {appliedOn.toLocaleDateString()}</Grid>
+          <Grid item><b>Applied On:</b> {appliedOn.toLocaleDateString()}</Grid>
           {application.status === "accepted" ||
-          application.status === "finished" ? (
-            <Grid item>Joined On: {joinedOn.toLocaleDateString()}</Grid>
+            application.status === "finished" ? (
+            <Grid item><b>Joined On:</b> {joinedOn.toLocaleDateString()}</Grid>
           ) : null}
+
+          {application.Meeting !== null &&
+            application.Meeting.meetingURL !== "" ? (
+            <Grid item><b>Meeting Link:</b> <Link href={application.Meeting.meetingURL}> <LinkIcon/> </Link> </Grid>
+          ) : null}
+
         </Grid>
-        <Grid item container direction="column" xs={3}>
+        <Grid item container direction="column" xs={12} sm={3} md={3}>
           <Grid item xs>
             <Paper
               className={classes.statusBlock}
@@ -171,8 +192,8 @@ const ApplicationTile = (props) => {
             </Paper>
           </Grid>
           {application.status === "accepted" ||
-          application.status === "finished" ? (
-            <Grid item>
+            application.status === "finished" ? (
+            <Grid item >
               <Button
                 variant="contained"
                 color="primary"
@@ -225,6 +246,15 @@ const ApplicationTile = (props) => {
 const Applications = (props) => {
   const setPopup = useContext(SetPopupContext);
   const [applications, setApplications] = useState([]);
+  const useStyles = makeStyles((theme)=>({
+    headerSize :{
+      fontSize:'34pt',
+      [theme.breakpoints.down('sm')]:{
+      fontSize:'22pt'
+      }
+    }
+  }))
+  const classes = useStyles()
 
   useEffect(() => {
     getData();
@@ -261,7 +291,7 @@ const Applications = (props) => {
       style={{ padding: "30px", minHeight: "93vh" }}
     >
       <Grid item>
-        <Typography variant="h2">Applications</Typography>
+        <Typography className= {classes.headerSize}>Applications</Typography>
       </Grid>
       <Grid
         container

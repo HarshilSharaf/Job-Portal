@@ -10,6 +10,12 @@ const apiList = {
   rating: `${server}/api/rating`,
   user: `${server}/api/user`,
   applicants: `${server}/api/applicants`,
+  forgotPassword: `${server}/api/forgotPassword`,
+  resetPassword: `${server}/api/reset-password`,
+  createZoomMeeting: `${server}/api/createZoomMeeting`,
+  checkMeetings: `${server}/api/checkMeetings`,
+  updateMeeting: `${server}/api/updateMeeting`,
+  deleteMeeting: `${server}/api/deleteMeeting`
 };
 
 export default apiList;

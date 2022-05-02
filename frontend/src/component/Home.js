@@ -49,6 +49,18 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  ScreenSize:{
+    flexDirection: 'row',
+  [theme.breakpoints.only('xs')]:{
+    flexDirection : 'column'
+  },
+  [theme.breakpoints.only('sm')]:{
+    flexDirection : 'row'
+  },
+  [theme.breakpoints.only('md')]:{
+    flexDirection : 'row'
+  }
+  }
 }));
 const JobTile = (props) => {
   const classes = useStyles();
@@ -99,7 +111,7 @@ const JobTile = (props) => {
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
-      <Grid container>
+      <Grid container className={classes.ScreenSize}>
         <Grid container item xs={9} spacing={1} direction="column">
           <Grid item>
             <Typography variant="h5">{job.title}</Typography>
@@ -107,22 +119,22 @@ const JobTile = (props) => {
           <Grid item>
             <Rating value={job.rating !== -1 ? job.rating : null} readOnly />
           </Grid>
-          <Grid item>Role : {job.jobType}</Grid>
-          <Grid item>Salary : &#8377; {job.salary} per month</Grid>
+          <Grid item><b>Role :</b> {job.jobType}</Grid>
+          <Grid item><b>Salary :</b> &#8377; {job.salary} per month</Grid>
           <Grid item>
-            Duration :{" "}
+            <b>Duration :</b>{" "}
             {job.duration !== 0 ? `${job.duration} month` : `Flexible`}
           </Grid>
-          <Grid item>Posted By : {job.recruiter.name}</Grid>
-          <Grid item>Application Deadline : {deadline}</Grid>
+          <Grid item><b>Posted By :</b> {job.recruiter.name}</Grid>
+          <Grid item><b>Application Deadline:</b> {deadline}</Grid>
 
-          <Grid item>
+          <Grid item style={{marginBottom:"10px"}}>
             {job.skillsets.map((skill) => (
               <Chip label={skill} style={{ marginRight: "2px" }} />
             ))}
           </Grid>
         </Grid>
-        <Grid item xs={3}>
+        <Grid item xs={12} sm={3}>
           <Button
             variant="contained"
             color="primary"
@@ -640,7 +652,7 @@ const Home = (props) => {
         item
         direction="column"
         alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
+        style={{ padding: "30px", minHeight: "93vh" ,background:"linear-gradient(to right, #00d2ff, #3a7bd5)"}}
       >
         <Grid
           item
@@ -648,13 +660,17 @@ const Home = (props) => {
           direction="column"
           justify="center"
           alignItems="center"
+          xs={12}
+          sm={12}
+          md={12}
         >
           <Grid item xs>
-            <Typography variant="h2">Jobs</Typography>
+            <Typography variant="h2" style={{color:"white"}}>Jobs</Typography>
           </Grid>
-          <Grid item xs>
+          <Grid item sm={7} md={5} style={{width:"100%"}}>
             <TextField
               label="Search Jobs"
+              fullWidth
               value={searchOptions.query}
               onChange={(event) =>
                 setSearchOptions({
@@ -676,7 +692,7 @@ const Home = (props) => {
                   </InputAdornment>
                 ),
               }}
-              style={{ width: "500px" }}
+              style={{color:"white"}}
               variant="outlined"
             />
           </Grid>

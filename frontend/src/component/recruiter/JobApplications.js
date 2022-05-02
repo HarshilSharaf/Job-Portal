@@ -53,8 +53,20 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
   },
   avatar: {
-    width: theme.spacing(17),
-    height: theme.spacing(17),
+    width: theme.spacing(15),
+    height: theme.spacing(15),
+  },
+  ScreenSize:{
+    flexDirection: 'row',
+  [theme.breakpoints.only('xs')]:{
+    flexDirection : 'column'
+  },
+  [theme.breakpoints.only('sm')]:{
+    flexDirection : 'row'
+  },
+  [theme.breakpoints.only('md')]:{
+    flexDirection : 'row'
+  }
   },
 }));
 
@@ -541,10 +553,12 @@ const ApplicationTile = (props) => {
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
-      <Grid container>
+      <Grid container className={classes.ScreenSize}>
         <Grid
           item
-          xs={2}
+          xs={12}
+          sm={4}
+          md={2}
           style={{
             display: "flex",
             justifyContent: "center",
@@ -556,9 +570,9 @@ const ApplicationTile = (props) => {
             className={classes.avatar}
           />
         </Grid>
-        <Grid container item xs={7} spacing={1} direction="column">
+        <Grid container item xs={7} sm={5} md={7} spacing={1} direction="column">
           <Grid item>
-            <Typography variant="h5">
+            <Typography style={{fontWeight:'bold'}} variant="h5">
               {application.Jobapplicant.name}
             </Typography>
           </Grid>
@@ -572,9 +586,9 @@ const ApplicationTile = (props) => {
               readOnly
             />
           </Grid>
-          <Grid item>Applied On: {appliedOn.toLocaleDateString()}</Grid>
+          <Grid item><b> Applied On: </b> {appliedOn.toLocaleDateString()}</Grid>
           <Grid item>
-            Education:{" "}
+            <b>Education:</b>{" "}
             {application.Jobapplicant.education
               .map((edu) => {
                 return `${edu.institutionName} (${edu.startYear}-${
@@ -584,7 +598,7 @@ const ApplicationTile = (props) => {
               .join(", ")}
           </Grid>
           <Grid item>
-            SOP: {application.sop !== "" ? application.sop : "Not Submitted"}
+            <b>SOP:</b> {application.sop !== "" ? application.sop : "Not Submitted"}
           </Grid>
           <Grid item>
             {application.Jobapplicant.skills.map((skill) => (
@@ -592,7 +606,7 @@ const ApplicationTile = (props) => {
             ))}
           </Grid>
         </Grid>
-        <Grid item container direction="column" xs={3}>
+        <Grid item container direction="column" xs={12} sm={12} md={3}>
           <Grid item>
             <Button
               variant="contained"
@@ -660,7 +674,15 @@ const JobApplications = (props) => {
       },
     },
   });
-
+  const useStyles = makeStyles((theme)=>({
+    headerSize :{
+      fontSize:'34pt',
+      [theme.breakpoints.down('sm')]:{
+      fontSize:'22pt'
+      }
+    }
+  }))
+  const classes = useStyles()
   useEffect(() => {
     getData();
   }, []);
@@ -732,7 +754,7 @@ const JobApplications = (props) => {
         style={{ padding: "30px", minHeight: "93vh" }}
       >
         <Grid item>
-          <Typography variant="h2">Applications</Typography>
+          <Typography className= {classes.headerSize}>Applications</Typography>
         </Grid>
         <Grid item>
           <IconButton onClick={() => setFilterOpen(true)}>

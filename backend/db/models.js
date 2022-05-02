@@ -5,50 +5,74 @@ const Applications = require('./Applications')
 const Recruiter = require('./Recruiter')
 const sequelize = require('../db/Connection')
 const Sequelize = require("sequelize");
-const {Rating} = require('./Rating')
+const { Rating } = require('./Rating')
 const { DataTypes } = require("sequelize");
+const Meetings = require("./Meetings")
 
 JOB.belongsTo(Recruiter, {
     foreignKey: {
-        name: 'rid', 
+        name: 'rid',
         type: Sequelize.UUID,
         allowNull: false,
     }
 })
-// Recruiter.hasMany(JOB)
-Applications.belongsTo(JOB,{
+
+Applications.belongsTo(JOB, {
     foreignKey: {
-        name: 'jid', 
+        name: 'jid',
         type: Sequelize.UUID,
         allowNull: false,
     }
 })
-// Applications.belongsTo(JOB,{
-//     foreignKey:{
-//         name: 'dateOfPosting',
-//         type: DataTypes.DATE,
-//         defaultValue: DataTypes.NOW
-        
-//     },
-//     targetKey:'dateOfPosting'
-// })
-Applications.belongsTo(JobApplicant,{
+
+Applications.belongsTo(JobApplicant, {
     foreignKey: {
-        name: 'aid', 
+        name: 'aid',
         type: Sequelize.UUID,
         allowNull: false,
     },
-    targetKey:'aid'
+    targetKey: 'aid'
 })
-// JOB.hasMany(Applications)
 
-Applications.belongsTo(Recruiter,{
-    foreignKey:'rid',
+Applications.belongsTo(Recruiter, {
+    foreignKey: 'rid',
+    type: Sequelize.UUID,
+    allowNull: false,
+})
+
+Meetings.belongsTo(JOB, {
+    foreignKey: {
+        name: 'jid',
+        type: Sequelize.UUID,
+        allowNull: false,
+    }
+})
+Meetings.belongsTo(Recruiter, {
+    foreignKey: 'rid',
+    type: Sequelize.UUID,
+    allowNull: false,
+})
+
+// Meetings.belongsTo(Applications, {
+//     foreignKey: 'applicationId',
+//     type: Sequelize.UUID,
+//     allowNull: false,
+// })
+Applications.belongsTo(Meetings, {
+    foreignKey: {
+        name: 'mid',
+        type: Sequelize.UUID,
+        allowNull: true,
+    },
+    targetKey: 'mid'
+})
+Meetings.belongsTo(JobApplicant, {
+    foreignKey: 'aid',
     type: Sequelize.UUID,
     allowNull: false,
 })
 
 
-sequelize.sync({ alter:true,force: false }).then(() => console.log("All Tables Created Successfully"))
+sequelize.sync({ alter: true, force: false }).then(() => console.log("All Tables Created Successfully"))
 
-module.exports = { User, JOB, JobApplicant, Recruiter, sequelize ,Applications,Rating}
+module.exports = { User, JOB, JobApplicant, Recruiter, sequelize, Applications, Rating, Meetings }

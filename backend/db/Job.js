@@ -124,6 +124,13 @@ const Job = sequelize.define("jobs",
                }
             },
         },
+        status:{
+            type:Sequelize.STRING,
+            defaultValue: "Open",
+            validate:{
+                isIn: [['Open', 'Deleted']]
+            }
+        }
         // rid:{
         //     type:Sequelize.UUID,
         //     allowNull:false,

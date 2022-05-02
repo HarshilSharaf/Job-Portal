@@ -5,9 +5,13 @@ import {
   Button,
   makeStyles,
 } from "@material-ui/core";
+import Navbar from 'react-bootstrap/Navbar'
+import Nav from 'react-bootstrap/Nav'
+import NavDropdown from 'react-bootstrap/NavDropdown'
+import Container from 'react-bootstrap/Container'
 import * as colors from "@material-ui/core/colors";
 import { useHistory } from "react-router-dom";
-
+import logo from '../logo.jpg'
 import isAuth, { userType } from "../lib/isAuth";
 
 const useStyles = makeStyles((theme) => ({
@@ -24,7 +28,7 @@ const useStyles = makeStyles((theme) => ({
   },
   Toolbar: {
     boxShadow: "0px 0px",
-    backgroundColor: colors.cyan[50],
+    backgroundColor: "white",
     color: colors.blueGrey[700],
   },
   button: {
@@ -40,7 +44,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Navbar = (props) => {
+const NavBar = (props) => {
   const classes = useStyles();
   let history = useHistory();
 
@@ -50,77 +54,42 @@ const Navbar = (props) => {
   };
 
   return (
-    <AppBar position="fixed" className={classes.noBox}>
-      <Toolbar className={classes.Toolbar}>
-        <Typography variant="h6" className={classes.title}>
-          Job Portal
-        </Typography>
-        {isAuth() ? (
-          userType() === "recruiter" ? (
-            <>
-              <Button
-                color="inherit"
-                onClick={() => handleClick("/home")}
-                className={classes.button}
-              >
-                Home
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/addjob")}>
-                Add Jobs
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/myjobs")}>
-                My Jobs
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/employees")}>
-                Employees
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/profile")}>
-                Profile
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/logout")}>
-                Logout
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button color="inherit" onClick={() => handleClick("/home")}>
-                Home
-              </Button>
-              <Button
-                color="inherit"
-                onClick={() => handleClick("/applications")}
-              >
-                Applications
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/profile")}>
-                Profile
-              </Button>
-              <Button color="inherit" onClick={() => handleClick("/logout")}>
-                Logout
-              </Button>
-            </>
-          )
-        ) : (
-          <>
-            <Button
-              color="inherit"
-              onClick={() => handleClick("/login")}
-              className={classes.button}
-            >
-              Login
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => handleClick("/signup")}
-              className={classes.button}
-            >
-              Signup
-            </Button>
-          </>
-        )}
-      </Toolbar>
-    </AppBar>
-  );
+    <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
+  <Container>
+  <Navbar.Brand href="/">
+    <img src={logo}
+    width="50" height="30" style={{marginRight:"8px"}}></img>
+    Job Portal</Navbar.Brand>
+  <Navbar.Toggle aria-controls="responsive-navbar-nav" />
+  <Navbar.Collapse id="responsive-navbar-nav">
+    <Nav className="ms-auto ">
+      {isAuth() ? ( userType() === "recruiter" ?
+      (<>
+        <Nav.Link href="/addjob">Add Jobs</Nav.Link>
+      <Nav.Link href="/myjobs">My Jobs</Nav.Link>
+      <Nav.Link href="/employees">Employees</Nav.Link>
+      <Nav.Link href="/profile">Profile</Nav.Link>
+      <Nav.Link href="/logout">Logout</Nav.Link>
+      </>) : 
+      (
+        <>
+          <Nav.Link href="/home">Home</Nav.Link>
+      <Nav.Link href="/applications">Applications</Nav.Link>
+      <Nav.Link href="/profile">Profile</Nav.Link>
+      <Nav.Link href="/logout">Logout</Nav.Link>
+        </>
+      ) ) : (
+        <>
+      <Nav.Link href="/login">Login</Nav.Link>
+      <Nav.Link href="/signup">SignUp</Nav.Link>
+        </>
+      ) }
+
+    </Nav>
+  </Navbar.Collapse>
+  </Container>
+</Navbar>
+ );
 };
 
-export default Navbar;
+export default NavBar;

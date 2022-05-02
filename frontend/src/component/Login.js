@@ -6,6 +6,7 @@ import {
   Typography,
   makeStyles,
   Paper,
+  Link
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
@@ -19,15 +20,34 @@ import isAuth from "../lib/isAuth";
 
 const useStyles = makeStyles((theme) => ({
   body: {
+    // height:"100%",
     padding: "60px 60px",
     margin: "10px 0px",
     fontFamily: "Roboto",
   },
   inputBox: {
     width: "300px",
+    [theme.breakpoints.only('xs')]:{
+      width:"100%"
+    }
   },
   submitButton: {
     width: "300px",
+    [theme.breakpoints.only('xs')]:{
+      width:"100%"
+    }
+  },
+  ScreenSize: {
+    flexDirection: 'column',
+    [theme.breakpoints.only('xs')]: {
+      flexDirection: 'row'
+    },
+    [theme.breakpoints.only('sm')]: {
+      flexDirection: 'column'
+    },
+    [theme.breakpoints.only('md')]: {
+      flexDirection: 'column'
+    }
   },
 }));
 
@@ -108,14 +128,22 @@ const Login = (props) => {
   return loggedin ? (
     <Redirect to="/home" />
   ) : (
-    <Paper elevation={3} className={classes.body}>
-      <Grid container direction="column" spacing={4} alignItems="center">
-        <Grid item>
+    <Paper elevation={3} className={classes.body} style={
+      {
+        display:"inline-block",      position: 'absolute', 
+    left: '50%', 
+    top: '50%',
+    transform: 'translate(-50%, -50%)'
+  }
+  }
+    >
+      <Grid container className={classes.ScreenSize} spacing={4} alignItems="center">
+        <Grid item xs={12}>
           <Typography variant="h3" component="h2">
             Login
           </Typography>
         </Grid>
-        <Grid item>
+        <Grid item xs={12} >
           <EmailInput
             label="Email"
             value={loginDetails.email}
@@ -123,9 +151,10 @@ const Login = (props) => {
             inputErrorHandler={inputErrorHandler}
             handleInputError={handleInputError}
             className={classes.inputBox}
+            // style={{width:"100%"}}
           />
         </Grid>
-        <Grid item>
+        <Grid item xs={12}>
           <PasswordInput
             label="Password"
             value={loginDetails.password}
@@ -133,7 +162,7 @@ const Login = (props) => {
             className={classes.inputBox}
           />
         </Grid>
-        <Grid item>
+        <Grid item xs={12}>
           <Button
             variant="contained"
             color="primary"
@@ -143,6 +172,8 @@ const Login = (props) => {
             Login
           </Button>
         </Grid>
+        <Link href="/forgotPassword">Forgot Password?</Link>
+
       </Grid>
     </Paper>
   );

@@ -4,30 +4,36 @@ import {
   Chip,
   Grid,
   IconButton,
-  InputAdornment,
   makeStyles,
   Paper,
-  TextField,
   Typography,
   Modal,
-  Slider,
-  FormControlLabel,
-  FormGroup,
-  MenuItem,
   Checkbox,
   Avatar,
+  Link,
 } from "@material-ui/core";
-import { useParams } from "react-router-dom";
+import Form from 'react-bootstrap/Form'
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
 import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
-
+import AddIcon from '@material-ui/icons/Add';
+import EditIcon from '@material-ui/icons/Edit';
+import LinkIcon from '@material-ui/icons/Link';
+import Dialog from '@material-ui/core/Dialog';
+import DeleteIcon from '@material-ui/icons/Delete';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 import { SetPopupContext } from "../../App";
+import parse from 'html-react-parser';
 
 import apiList, { server } from "../../lib/apiList";
-
+import { user } from "pg/lib/defaults";
+const Swal = require('sweetalert2')
+const moment = require("moment")
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -53,9 +59,21 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
   },
   avatar: {
-    width: theme.spacing(17),
-    height: theme.spacing(17),
+    width: theme.spacing(15),
+    height: theme.spacing(15),
   },
+  ScreenSize: {
+    flexDirection: 'row',
+    [theme.breakpoints.only('xs')]: {
+      flexDirection: 'column'
+    },
+    [theme.breakpoints.only('sm')]: {
+      flexDirection: 'row'
+    },
+    [theme.breakpoints.only('md')]: {
+      flexDirection: 'row'
+    }
+  }
 }));
 
 const FilterPopup = (props) => {
@@ -398,8 +416,42 @@ const ApplicationTile = (props) => {
   const { application, getData } = props;
   const setPopup = useContext(SetPopupContext);
   const [open, setOpen] = useState(false);
+  // const largeScreen = useMediaQuery(theme => theme.breakpoints.up('md'));
+  // const mobile = useMediaQuery((theme) => theme.breakpoints.only('mobile'), {noSsr: true});
+
+
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+
+  const handleOpenCreateMeetingModal = () => { setShowCreateModal(true) }
+  const handleCloseCreateMeetingModal = () => {
+    setCreateMeetingMessage("")
+    setShowCreateModal(false)
+    checkForMeetings()
+  }
+  const handleOpenUpdateMeetingModal = () => { setShowUpdateModal(true) }
+  const handleCloseUpdateMeetingModal = () => {
+    setUpdateMeetingMessage('')
+    setShowUpdateModal(false)
+    checkForMeetings()
+  }
+
   const [openEndJob, setOpenEndJob] = useState(false);
   const [rating, setRating] = useState(application.Jobapplicant.rating);
+  const [createMeetingMessage, setCreateMeetingMessage] = useState('')
+  const [updateMeetingMessage, setUpdateMeetingMessage] = useState('')
+
+  const [isMeetingCreated, setIsMeetingCreated] = useState(false)
+  const [meetingData, setMeetingData] = useState({
+
+  })
+  const [dateAndTimeArray, setDateAndTimeArray] = useState({ start_date: '', start_time: '' })
+
+  const [topic, setTopic] = useState('')
+  const [agenda, setAgenda] = useState('')
+  const [duration, setDuration] = useState(0)
+  const [startDate, setStartDate] = useState(new Date())
+  const [startTime, setStartTime] = useState(new Date().toLocaleTimeString())
 
   const appliedOn = new Date(application.dateOfApplication);
 
@@ -519,13 +571,235 @@ const ApplicationTile = (props) => {
         handleCloseEndJob();
       });
   };
+  const handleCreateMeeting = () => {
+
+    const meetingDetails = {
+      topic,
+      agenda,
+      duration,
+      startDate,
+      startTime,
+      rid: application.rid,
+      aid: application.Jobapplicant.aid,
+      jid: application.job.jid,
+      applicationId: application.applicationId
+    }
+    console.log(meetingDetails)
+
+    let address = apiList.createZoomMeeting
+    axios.post(address, meetingDetails).then((result) => {
+      console.log(result)
+      if (result !== null) {
+        setCreateMeetingMessage(`<span style="color:green">Meeting Added Successfully</span>`)
+        checkForMeetings()
+      }
+    }).catch(error => {
+
+      setCreateMeetingMessage(`<span style="color:red">Some Error Occured</span>`)
+
+      console.log(error)
+
+    }
+
+
+    )
+  }
+
+  const checkForMeetings = () => {
+    const meetingDetails = {
+      rid: application.rid,
+      aid: application.Jobapplicant.aid,
+      jid: application.job.jid,
+      applicationId: application.applicationId
+    }
+    axios.post(apiList.checkMeetings, meetingDetails, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    }).then((result) => {
+      if (result.data !== null && result.data.message !== "Meeting Not Found") {
+        const dateTime = result.data.data.start_time.split("T")
+        const timeArray = new Date(result.data.data.start_time).toTimeString().split("GMT+0530")
+        let time = timeArray[0].replace(/ /g, "")
+        console.log(result.data.data.start_time)
+        setDateAndTimeArray({ start_date: dateTime[0], start_time: time })
+        setMeetingData(result.data.data)
+        console.log("Meeting data:", meetingData)
+        setTopic(meetingData.topic)
+        setAgenda(meetingData.agenda)
+        setDuration(meetingData.duration)
+        setStartDate(dateAndTimeArray.start_date)
+        setStartTime(dateAndTimeArray.start_time)
+        setIsMeetingCreated(true)
+      }
+      else {
+        setMeetingData({})
+        setIsMeetingCreated(false)
+      }
+    }).catch((err) => {
+      console.log(err)
+    })
+  }
+
+  const showCreateMeetingModal = () => {
+    return (
+      <>
+        <Dialog open={showCreateModal} onClose={handleCloseCreateMeetingModal} aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Add Interview Details</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Arrange An Interview with the Candidate
+            </DialogContentText>
+            <Form method="POST" id="createMeetingForm" onSubmit={(e) => { e.preventDefault(); }}>
+              <Form.Group className="mb-3" controlId="Topic">
+                <Form.Label>Topic Of Meeting</Form.Label>
+                <Form.Control type="text" placeholder="Enter topic" onInput={e => setTopic(e.target.value)} />
+
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="Agenda">
+                <Form.Label>Agenda of Meeting</Form.Label>
+                <Form.Control as="textarea" rows={3} placeholder="Enter Agenda" onInput={e => setAgenda(e.target.value)} />
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="timings">
+                <Form.Label>Enter Duration of Meeting</Form.Label>
+                <Form.Control type="number" onInput={e => setDuration(e.target.value)} />
+
+                <Form.Label>Enter Date Of Meeting</Form.Label>
+                <Form.Control type="date" onInput={e => setStartDate(e.target.value)} />
+                <Form.Label>Enter Starting Time  Of Meeting</Form.Label>
+                <Form.Control type="time" onInput={e => setStartTime(e.target.value)} />
+
+              </Form.Group>
+              <div className='mt-2' >{parse(createMeetingMessage)}</div>
+            </Form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseCreateMeetingModal} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleCreateMeeting} color="primary" type="submit" form="createMeetingForm">
+              Schedule
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
+    )
+
+  }
+
+
+  const handleUpdateMeeting = () => {
+    meetingData['start_time'] = dateAndTimeArray.start_date.concat("T", dateAndTimeArray.start_time, "Z")
+    console.log("UPDATE MEETING DETAILS:", meetingData)
+    axios.post(apiList.updateMeeting, meetingData, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      }
+    }).then((result) => {
+      console.log("Response:", result)
+      setUpdateMeetingMessage(`<span style="color:green">${result.data.message}</span>`)
+    }).catch(err => {
+      console.log(err)
+      setUpdateMeetingMessage(`<span style="color:red">Failed to Update Meeting Details</span>`)
+    })
+  }
+  const showUpdateMeetingModal = () => {
+    return (
+      <>
+        <Dialog open={showUpdateModal} onClose={handleCloseUpdateMeetingModal} aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Update Interview Details</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Arrange An Interview with the Candidate
+            </DialogContentText>
+            <Form method="POST" id="updateMeetingForm" onSubmit={(e) => { e.preventDefault(); }}>
+              <Form.Group className="mb-3" controlId="Topic">
+                <Form.Label>Topic Of Meeting</Form.Label>
+                <Form.Control type="text" placeholder="Enter topic" value={meetingData ? meetingData.topic : ''} onInput={e => setMeetingData({ ...meetingData, topic: e.target.value })} />
+
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="Agenda">
+                <Form.Label>Agenda of Meeting</Form.Label>
+                <Form.Control as="textarea" rows={3} placeholder="Enter Agenda" value={meetingData ? meetingData.agenda : ''} onInput={e => setMeetingData({ ...meetingData, agenda: e.target.value })} />
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="timings">
+                <Form.Label>Enter Duration of Meeting</Form.Label>
+                <Form.Control type="number" value={meetingData ? meetingData.duration : ''} onInput={e => setMeetingData({ ...meetingData, duration: e.target.value })} />
+
+                <Form.Label>Enter Date Of Meeting</Form.Label>
+                <Form.Control type="date" value={dateAndTimeArray.start_date} onInput={e => setDateAndTimeArray({ ...dateAndTimeArray, start_date: e.target.value })} />
+                <Form.Label>Enter Starting Time  Of Meeting</Form.Label>
+                <Form.Control type="time" step={2} value={dateAndTimeArray.start_time} onInput={e => setDateAndTimeArray({ ...dateAndTimeArray, start_time: e.target.value })} />
+
+              </Form.Group>
+              <div className='mt-2' >{parse(updateMeetingMessage)}</div>
+            </Form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseUpdateMeetingModal} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateMeeting} color="primary" type="submit" form="updateMeetingForm">
+              Update
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
+    )
+
+  }
+
+
+  useEffect(() => {
+    checkForMeetings();
+  }, []);
+
+  const deleteMeeting= () =>{
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, Cancel Interview!'
+    }).then((result) => {
+
+      if (result.isConfirmed) {
+        console.log(meetingData)
+        axios.post(apiList.deleteMeeting,meetingData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          }
+        })
+        .then((result)=>{console.log(result)
+          if(result.data.status === 200){
+            Swal.fire(
+              'Cancelled!',
+              'Your Meeting has been cancelled.',
+              'success'
+            ).then(()=>{
+              setCreateMeetingMessage("")
+              setIsMeetingCreated(false)
+            })
+          }
+        })
+        .catch((err) =>{console.log(err)})
+
+      }
+    })
+  } 
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
-      <Grid container>
+      <Grid container className={classes.ScreenSize}>
         <Grid
           item
-          xs={2}
+          xs={12}
+          sm={4}
+          md={2}
           style={{
             display: "flex",
             justifyContent: "center",
@@ -537,7 +811,7 @@ const ApplicationTile = (props) => {
             className={classes.avatar}
           />
         </Grid>
-        <Grid container item xs={7} spacing={1} direction="column">
+        <Grid container item xs={7} sm={5} md={7} spacing={1} direction="column" style={{ maxWidth: "100%" }}>
           <Grid item>
             <Typography variant="h5">
               {application.Jobapplicant.name}
@@ -553,20 +827,37 @@ const ApplicationTile = (props) => {
               readOnly
             />
           </Grid>
-          <Grid item>Job Title: {application.job.title}</Grid>
-          <Grid item>Role: {application.job.jobType}</Grid>
-          <Grid item>Applied On: {appliedOn.toLocaleDateString()}</Grid>
+          <Grid item><b>Job Title:</b> {application.job.title}</Grid>
+          <Grid item><b>Role:</b> {application.job.jobType}</Grid>
+          <Grid item><b>Applied On:</b> {appliedOn.toLocaleDateString()}</Grid>
           <Grid item>
-            SOP: {application.sop !== "" ? application.sop : "Not Submitted"}
+            <b>SOP:</b> {application.sop !== "" ? application.sop : "Not Submitted"}
           </Grid>
           <Grid item>
             {application.Jobapplicant.skills.map((skill) => (
               <Chip label={skill} style={{ marginRight: "2px" }} />
             ))}
           </Grid>
+          <Grid item alignItems="center"
+            justifyContent="center">
+            {isMeetingCreated ?
+              (<>
+              <Button variant="contained" style={{marginTop:"4px",marginRight:"4px",background:"#ffbd03",}} 
+              onClick={handleOpenUpdateMeetingModal}><EditIcon />Update Interview</Button>
+                <Button variant="contained" style={{marginTop:"4px" ,marginRight:"4px"  ,background:"red",color:"white"}}
+              onClick ={deleteMeeting}  ><DeleteIcon/>Cancel Interview</Button>
+              </>)
+              : <Button variant="contained" style={{ background:"#ffbd03",marginBottom:"10px"}} onClick={handleOpenCreateMeetingModal}>
+                <AddIcon />Schedule an Interview</Button>}
+            {showCreateMeetingModal()}
+            {showUpdateMeetingModal()}
+
+          </Grid>
+          {isMeetingCreated ?
+            (<Grid item style={{ marginBottom: '20px' }}> <b>Meeting Link:</b> <Link href={meetingData.start_url}> <LinkIcon /> </Link></Grid>) : null}
         </Grid>
-        <Grid item container direction="column" xs={3}>
-          <Grid item>
+        <Grid item container direction="column" xs={12} sm={12} md={3}>
+          <Grid item >
             <Button
               variant="contained"
               className={classes.statusBlock}
@@ -687,6 +978,7 @@ const ApplicationTile = (props) => {
 
 const AcceptedApplicants = (props) => {
   const setPopup = useContext(SetPopupContext);
+
   const [applications, setApplications] = useState([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchOptions, setSearchOptions] = useState({
@@ -739,7 +1031,6 @@ const AcceptedApplicants = (props) => {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
 
     axios
       .get(address, {
@@ -772,7 +1063,7 @@ const AcceptedApplicants = (props) => {
         style={{ padding: "30px", minHeight: "93vh" }}
       >
         <Grid item>
-          <Typography variant="h2">Employees</Typography>
+          <Typography variant="h3">Employees</Typography>
         </Grid>
         <Grid item>
           <IconButton onClick={() => setFilterOpen(true)}>

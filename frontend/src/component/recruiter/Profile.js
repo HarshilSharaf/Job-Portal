@@ -27,6 +27,18 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
     // padding: "30px",
   },
+  ScreenSize:{
+    flexDirection: 'column',
+  [theme.breakpoints.only('xs')]:{
+    flexDirection : 'row'
+  },
+  [theme.breakpoints.only('sm')]:{
+    flexDirection : 'column'
+  },
+  [theme.breakpoints.only('md')]:{
+    flexDirection : 'column'
+  }
+  }
 }));
 
 const Profile = (props) => {
@@ -118,15 +130,16 @@ const Profile = (props) => {
     <>
       <Grid
         container
-        item
-        direction="column"
+        
+        // direction="column"
+        className={classes.ScreenSize}
         alignItems="center"
         style={{ padding: "30px", minHeight: "93vh" }}
       >
         <Grid item>
           <Typography variant="h2">Profile</Typography>
         </Grid>
-        <Grid item xs style={{ width: "100%" }}>
+        <Grid item  xs={12} sm={7} md={5} style={{ width: "100%" }}>
           <Paper
             style={{
               padding: "20px",
@@ -139,7 +152,7 @@ const Profile = (props) => {
             }}
           >
             <Grid container direction="column" alignItems="stretch" spacing={3}>
-              <Grid item>
+              <Grid item xs={12}>
                 <TextField
                   label="Name"
                   value={profileDetails.name}
@@ -150,7 +163,7 @@ const Profile = (props) => {
                   style={{ width: "100%" }}
                 />
               </Grid>
-              <Grid item>
+              <Grid item xs={12}>
                 <TextField
                   label="Bio (upto 250 words)"
                   multiline
@@ -170,7 +183,7 @@ const Profile = (props) => {
                 />
               </Grid>
               <Grid
-                item
+                item xs={12}
                 style={{
                   display: "flex",
                   justifyContent: "center",

@@ -33,10 +33,34 @@ const useStyles = makeStyles((theme) => ({
   },
   inputBox: {
     width: "600px",
+    [theme.breakpoints.only('xs')]:{
+      width:"100%",
+    }
   },
   submitButton: {
     width: "400px",
+    [theme.breakpoints.only('xs')]:{
+      width:"100%"
+    }
   },
+  ScreenSize: {
+    flexDirection: 'column',
+    [theme.breakpoints.only('xs')]: {
+      flexDirection: 'row'
+    },
+    [theme.breakpoints.only('sm')]: {
+      flexDirection: 'column'
+    },
+    [theme.breakpoints.only('md')]: {
+      flexDirection: 'column'
+    }
+  },
+  headerSize :{
+    fontSize:'34pt',
+    [theme.breakpoints.down('sm')]:{
+    fontSize:'24pt'
+    }
+  }
 }));
 
 const MultifieldInput = (props) => {
@@ -239,10 +263,17 @@ const Login = (props) => {
           console.log(response);
         })
         .catch((err) => {
+          // if(err.data!== null)
+          let errorMessage=''
+          if(err.response.data.errors[0].message !==null)
+          {errorMessage = err.response.data.errors[0].message}
+          else{
+            errorMessage = err.response.data.message
+          }
           setPopup({
             open: true,
             severity: "error",
-            message: err.response.data.message,
+            message:  errorMessage,
           });
           console.log(err.response);
         });
@@ -329,13 +360,13 @@ const Login = (props) => {
     <Redirect to="/" />
   ) : (
     <Paper elevation={3} className={classes.body}>
-      <Grid container direction="column" spacing={4} alignItems="center">
+      <Grid container className={classes.ScreenSize} spacing={4} alignItems="center">
         <Grid item>
-          <Typography variant="h3" component="h2">
+          <Typography className={classes.headerSize}>
             Signup
           </Typography>
         </Grid>
-        <Grid item>
+        <Grid item xs={12} sm={12} md={12}>
           <TextField
             select
             label="Category"
@@ -350,7 +381,7 @@ const Login = (props) => {
             <MenuItem value="recruiter">Recruiter</MenuItem>
           </TextField>
         </Grid>
-        <Grid item>
+        <Grid item xs={12}>
           <TextField
             label="Name"
             value={signupDetails.name}
@@ -368,7 +399,7 @@ const Login = (props) => {
             variant="outlined"
           />
         </Grid>
-        <Grid item>
+        <Grid item xs={12}>
           <EmailInput
             label="Email"
             value={signupDetails.email}
@@ -379,7 +410,7 @@ const Login = (props) => {
             required={true}
           />
         </Grid>
-        <Grid item>
+        <Grid item xs={12}>
           <PasswordInput
             label="Password"
             value={signupDetails.password}
@@ -402,7 +433,7 @@ const Login = (props) => {
               education={education}
               setEducation={setEducation}
             />
-            <Grid item>
+            <Grid item xs={12}>
               <ChipInput
                 className={classes.inputBox}
                 label="Skills"
@@ -413,7 +444,7 @@ const Login = (props) => {
                 }
               />
             </Grid>
-            <Grid item>
+            <Grid item xs={12}>
               <FileUploadInput
                 className={classes.inputBox}
                 label="Resume (.pdf)"
@@ -430,7 +461,7 @@ const Login = (props) => {
                 identifier={"resume"}
               />
             </Grid>
-            <Grid item>
+            <Grid item xs={12}>
               <FileUploadInput
                 className={classes.inputBox}
                 label="Profile Photo (.jpg/.png)"
@@ -450,7 +481,7 @@ const Login = (props) => {
           </>
         ) : (
           <>
-            <Grid item style={{ width: "100%" }}>
+            <Grid item xs={12} sm={5} style={{ width: "100%" }}>
               <TextField
                 label="Bio (upto 250 words)"
                 multiline
@@ -469,17 +500,19 @@ const Login = (props) => {
                 }}
               />
             </Grid>
-            <Grid item>
+            <Grid item xs={12} sm={6} md={4} lg={3}style={{ width: "100%" }}>
               <PhoneInput
                 country={"in"}
                 value={phone}
                 onChange={(phone) => setPhone(phone)}
+                style={{width:"100%"}}
+                inputStyle={{width:"100%"}}
               />
             </Grid>
           </>
         )}
 
-        <Grid item>
+        <Grid item xs={12}>
           <Button
             variant="contained"
             color="primary"

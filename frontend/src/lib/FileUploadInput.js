@@ -1,5 +1,5 @@
 import { useState, useContext } from "react";
-import { Grid, Button, TextField, LinearProgress } from "@material-ui/core";
+import { Grid, Button, TextField, LinearProgress,makeStyles } from "@material-ui/core";
 import { CloudUpload } from "@material-ui/icons";
 import Axios from "axios";
 
@@ -7,7 +7,16 @@ import { SetPopupContext } from "../App";
 
 const FileUploadInput = (props) => {
   const setPopup = useContext(SetPopupContext);
-
+  const useStyles = makeStyles((theme) =>({
+    marginForSmallScreens :{
+      marginTop:"0px",
+      [theme.breakpoints.only('xs')]:{
+        marginTop:"5px"
+      }
+    },
+    
+  }))
+  const classes = useStyles()
   const { uploadTo, identifier, handleInput } = props;
 
   const [file, setFile] = useState("");
@@ -54,7 +63,7 @@ const FileUploadInput = (props) => {
   return (
     <Grid container item xs={12} direction="column" className={props.className}>
       <Grid container item xs={12} spacing={0}>
-        <Grid item xs={3}>
+        <Grid item xs={12} sm={3}>
           <Button
             variant="contained"
             color="primary"
@@ -78,18 +87,19 @@ const FileUploadInput = (props) => {
             />
           </Button>
         </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={12} sm={6}>
           <TextField
             label={props.label}
             value={file ? file.name || "" : ""}
             InputProps={{
               readOnly: true,
             }}
+            className={classes.marginForSmallScreens}
             variant="outlined"
-            style={{ width: "100%" }}
+            style={{ width: "100%"}}
           />
         </Grid>
-        <Grid item xs={3}>
+        <Grid item xs={12} sm={3}>
           <Button
             variant="contained"
             color="secondary"

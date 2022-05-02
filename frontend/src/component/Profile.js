@@ -174,7 +174,6 @@ const Profile = (props) => {
   };
 
   const handleUpdate = () => {
-
     let updatedDetails = {
       ...profileDetails,
       education: education
@@ -186,6 +185,7 @@ const Profile = (props) => {
           return obj;
         }),
     };
+    console.log(updatedDetails)
 
     axios
       .put(apiList.user, updatedDetails, {
